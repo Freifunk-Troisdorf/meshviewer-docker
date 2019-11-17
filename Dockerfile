@@ -1,28 +1,38 @@
-FROM node:latest
+FROM node:13.1.0-alpine
 
-MAINTAINER Stefan Hoffmann <stefan@freifunk-troisdorf.de>
+MAINTAINER Stefan Hoffmann <stefan@freifunk-troisdorf.de>, Nils Jakobi <nils@freifunk-troisdorf.de>
+
+# add community repo
+RUN echo @community http://dl-cdn.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories
 
 # Install Yarn
-RUN apt-get update && apt-get install -y curl apt-transport-https && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt-get update && apt-get install -y yarn
+RUN apk add \
+    build-base \
+    gcc \
+    git \
+#    libffi-dev \
+    ruby \
+    ruby-dev \
+    yarn@community
 
 # Install Grunt
 RUN npm install --global grunt-cli && \
-    apt-get install -y ruby ruby-dev && \
     gem install --no-rdoc --no-ri sass -v 3.4.22 && \
     gem install --no-rdoc --no-ri compass
 
-# Build Meshviewer
-#RUN git clone https://github.com/Freifunk-Troisdorf/meshviewer.git /opt/meshviewer/
+# Clone Meshviewer
+WORKDIR /tmp/meshviewer
+RUN git clone https://github.com/Freifunk-Troisdorf/meshviewer.git /tmp/meshviewer
+RUN ls -alh /tmp/meshviewer
 
-#RUN npm install gulp -D && \
-#	yarn && \
-#	yarn global add gulp-cli
+RUN npm install gulp@4 -D
+RUN yarn && \
+    yarn global add gulp-cli
 
-COPY start.sh /
-RUN chmod +x /start.sh
+# create supernode folders
+RUN mkdir -p $(printf "/opt/meshviewer/build/data/tdf%d " {4..7})
 
-ENTRYPOINT ["/start.sh"]
-#RUN gulp
+# gulp this stuff and delete build environment
+RUN gulp && \
+    cp -r /tmp/meshviewer/build* /opt/meshviewer/build && \
+    rm -rf /tmp/meshviewer
