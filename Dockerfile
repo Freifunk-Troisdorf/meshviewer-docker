@@ -1,4 +1,4 @@
-FROM node:latest
+FROM node:5.6.0
 
 MAINTAINER Stefan Hoffmann <stefan@freifunk-troisdorf.de>
 
